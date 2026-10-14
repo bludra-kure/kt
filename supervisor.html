@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odpočet – Supervizor</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            text-align: center;
+            padding: 2rem;
+            background: #1a202c;
+            color: #e2e8f0;
+        }
+        h1 { color: #63b3ed; }
+        #info {
+            font-size: 1.4rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #2d3748;
+            border-radius: 12px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .big { font-size: 2.2rem; font-weight: 700; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Panel supervizora</h1>
+    <div id="info">
+        Nechte tuto stránku otevřenou.<br>
+        Dostanete upozornění, když vzdálený pracovník spustí nebo ukončí odpočet.
+        <div class="big" id="last">Čekám na událost…</div>
+    </div>
+
+    <script>
+        // Ask for notification permission
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
+        // For a pure static solution we rely on the remote page sending
+        // browser notifications. If both pages are open on the same device
+        // you can also use BroadcastChannel for live updates.
+
+        const channel = new BroadcastChannel("countdown-channel");
+
+        channel.onmessage = (event) => {
+            const { type, remaining } = event.data;
+            const last = document.getElementById("last");
+
+            if (type === "start") {
+                last.textContent = "Odpočet SPUŠTĚN";
+                new Notification("Odpočet spuštěn", { body: "Vzdálený pracovník spustil odpočet." });
+            }
+            if (type === "pause") {
+                last.textContent = "Odpočet POZASTAVEN";
+            }
+            if (type === "reset") {
+                last.textContent = "Odpočet RESETOVÁN";
+            }
+            if (type === "finish") {
+                last.textContent = "ČAS VYPRŠEL!";
+                new Notification("Čas vypršel!", {
+                    body: "Proveďte následný úkol.",
+                    requireInteraction: true
+                });
+            }
+            if (type === "tick") {
+                // optional live remaining time
+                // last.textContent = remaining;
+            }
+        };
+    </script>
+</body>
+</html>
