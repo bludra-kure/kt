@@ -85,15 +85,24 @@
 
   <script>
     // ========== PASTE YOUR FIREBASE CONFIG HERE ==========
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "firebase/app";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+    
+    // Your web app's Firebase configuration
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "YOUR_PROJECT",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef"
+      apiKey: "AIzaSyC0xpeI3X5CNHv058zFrtWASfYkE0uXEhw",
+      authDomain: "ktec-ef13a.firebaseapp.com",
+      databaseURL: "https://ktec-ef13a-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "ktec-ef13a",
+      storageBucket: "ktec-ef13a.firebasestorage.app",
+      messagingSenderId: "908850423598",
+      appId: "1:908850423598:web:fb5af9d073b9a2cf8ebcbf"
     };
+    
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
     // ======================================================
 
     firebase.initializeApp(firebaseConfig);
