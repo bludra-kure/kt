@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odpočet – Vzdálené místo</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 2rem;
+            background: #f0f4f8;
+            color: #1a202c;
+        }
+        h1 { margin-bottom: 0.5rem; }
+        #status {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        #timer {
+            font-size: clamp(3.5rem, 12vw, 6rem);
+            font-weight: 700;
+            margin: 1.5rem 0;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.05em;
+        }
+        .running { color: #2b6cb0; }
+        .paused  { color: #d69e2e; }
+        .finished{ color: #c53030; }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        button {
+            font-size: 1.15rem;
+            padding: 0.75rem 1.4rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            min-width: 120px;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.97); }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
+        #btn-start  { background: #38a169; }
+        #btn-pause  { background: #d69e2e; }
+        #btn-reset  { background: #e53e3e; }
+        #btn-start:hover  { background: #2f855a; }
+        #btn-pause:hover  { background: #b7791f; }
+        #btn-reset:hover  { background: #c53030; }
+        .hint {
+            margin-top: 2rem;
+            font-size: 0.95rem;
+            color: #718096;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Odpočet 20 minut</h1>
+    <div id="status">Připraveno</div>
+    <div id="timer" class="">20:00</div>
+
+    <div class="controls">
+        <button id="btn-start"  onclick="start()">Spustit</button>
+        <button id="btn-pause"  onclick="pause()" disabled>Pozastavit</button>
+        <button id="btn-reset"  onclick="reset()">Reset</button>
+    </div>
+
+    <p class="hint">
+        Tuto stránku otevřete na vzdáleném místě.<br>
+        Supervizor nechte otevřenou stránku <strong>supervisor.html</strong>.
+    </p>
+
+    <script>
+        const DURATION = 20 * 60;               // 20 minutes
+        let remaining = DURATION;
+        let intervalId = null;
+        let isRunning = false;
+        let isPaused  = false;
+
+        const timerEl  = document.getElementById("timer");
+        const statusEl = document.getElementById("status");
+        const btnStart = document.getElementById("btn-start");
+        const btnPause = document.getElementById("btn-pause");
+
+        // Optional: simple beep using Web Audio API
+        function playBeep(times = 1) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                for (let i = 0; i < times; i++) {
+                    setTimeout(() => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.frequency.value = 880;
+                        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.4);
+                    }, i * 500);
+                }
+            } catch (e) {}
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, "0");
+            const s = (sec % 60).toString().padStart(2, "0");
+            return `${m}:${s}`;
+        }
+
+        function updateDisplay() {
+            timerEl.textContent = formatTime(remaining);
+            timerEl.className = isRunning ? "running" : (isPaused ? "paused" : (remaining === 0 ? "finished" : ""));
+        }
+
+        function setStatus(text) {
+            statusEl.textContent = text;
+        }
+
+        function notify(title, body) {
+            // Browser notification (works if permission granted)
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body, requireInteraction: true });
+            }
+            // Also log for debugging / future extension
+            console.log(`[NOTIFY] ${title}: ${body}`);
+        }
+
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        function start() {
+            if (isRunning) return;
+            if (remaining <= 0) remaining = DURATION;
+
+            isRunning = true;
+            isPaused  = false;
+            btnStart.disabled = true;
+            btnPause.disabled = false;
+            btnPause.textContent = "Pozastavit";
+
+            setStatus("Běží…");
+            notify("Odpočet spuštěn", "Vzdálený pracovník spustil 20min odpočet.");
+            playBeep(1);
+
+            // Use more accurate timing
+            const startTime = Date.now();
+            const expectedEnd = startTime + remaining * 1000;
+
+            clearInterval(intervalId);
+            intervalId = setInterval(() => {
+                const now = Date.now();
+                remaining = Math.max(0, Math.round((expectedEnd - now) / 1000));
+                updateDisplay();
+
+                if (remaining <= 0) {
+                    finish();
+                }
+            }, 200); // check every 200 ms for better accuracy
+        }
+
+        function pause() {
+            if (!isRunning) return;
+
+            clearInterval(intervalId);
+            isRunning = false;
+            isPaused  = true;
+            btnStart.disabled = false;
+            btnPause.textContent = "Pokračovat";
+            setStatus("Pozastaveno");
+            notify("Odpočet pozastaven", "Odpočet byl pozastaven.");
+        }
+
+        function reset() {
+            clearInterval(intervalId);
+            remaining = DURATION;
+            isRunning = false;
+            isPaused  = false;
+            btnStart.disabled = false;
+            btnPause.disabled = true;
+            btnPause.textContent = "Pozastavit";
+            updateDisplay();
+            setStatus("Připraveno");
+            notify("Odpočet resetován", "Odpočet byl vynulován.");
+        }
+
+        function finish() {
+            clearInterval(intervalId);
+            isRunning = false;
+            isPaused  = false;
+            remaining = 0;
+            btnStart.disabled = false;
+            btnPause.disabled = true;
+            updateDisplay();
+            setStatus("Hotovo!");
+            notify("Čas vypršel!", "Odpočet skončil – proveďte následný úkol.");
+            playBeep(3);
+        }
+
+        // Init
+        updateDisplay();
+        requestNotificationPermission();
+    </script>
+</body>
+</html>
