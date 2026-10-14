@@ -91,6 +91,17 @@
         const statusEl = document.getElementById("status");
         const btnStart = document.getElementById("btn-start");
         const btnPause = document.getElementById("btn-pause");
+        const channel = new BroadcastChannel("countdown-channel");
+
+        function broadcast(type) {
+            channel.postMessage({ type, remaining });
+        }
+        
+        // Then call:
+        broadcast("start");   // inside start()
+        broadcast("pause");   // inside pause()
+        broadcast("reset");   // inside reset()
+        broadcast("finish");  // inside finish()
 
         // Optional: simple beep using Web Audio API
         function playBeep(times = 1) {
